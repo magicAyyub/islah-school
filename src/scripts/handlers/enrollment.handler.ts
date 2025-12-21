@@ -1,4 +1,4 @@
-import { select, text, spinner } from "@clack/prompts";
+import { select, text, spinner, isCancel } from "@clack/prompts";
 import {
   createEnrollment,
   validateEnrollment,
@@ -17,8 +17,11 @@ export async function handleEnrollmentManagement() {
       { value: "priority", label: "Priority Re-enrollment (Returning Students)" },
       { value: "validate", label: "Validate Enrollment" },
       { value: "view", label: "View Enrollment Details" },
+      { value: "back", label: "Back" },
     ],
   });
+
+  if (isCancel(action) || action === "back") return;
 
   switch (action) {
     case "list":
@@ -39,11 +42,14 @@ export async function handleEnrollmentManagement() {
   }
 }
 
+
 async function listEnrollments() {
   const year = await text({
     message: "Academic Year (leave empty for all):",
     placeholder: "2025",
   });
+
+  if (isCancel(year)) return;
 
   const s = spinner();
   s.start("Loading enrollments...");
@@ -53,17 +59,27 @@ async function listEnrollments() {
     : await getAllEnrollments();
   s.stop();
 
+  if (enrollments.length === 0) {
+    console.log("\nNo enrollments found.");
+    return;
+  }
+
   console.log("\nAll Enrollments:");
-  console.log("─".repeat(100));
-  enrollments.forEach((e) => {
-    const statusIcon = e.status === "VALIDATED" ? "[VALIDATED]" : e.status === "PENDING" ? "[PENDING]" : "[CANCELLED]";
-    const paymentCount = e.payments.length;
-    console.log(
-      `${statusIcon} ${e.student.firstName} ${e.student.lastName} | ${e.class.level.label} - ${e.class.groupName} | ${e.status} | ${paymentCount} payment(s)`
-    );
-    console.log(`   ID: ${e.id} | Year: ${e.academicYear}`);
+  const tableData = enrollments.map((e) => ({
+    Status: e.status,
+    Student: `${e.student.firstName} ${e.student.lastName}`,
+    Level: e.class.level.label,
+    Group: e.class.groupName,
+    Year: e.academicYear,
+    Type: e.type,
+    Payments: e.payments.length,
+  }));
+  console.table(tableData, Object.keys(tableData[0]));
+  console.log(`\nTotal: ${enrollments.length} enrollments`);
+  console.log("\nEnrollment IDs:");
+  enrollments.forEach((e, i) => {
+    console.log(`[${i}] ${e.id} - ${e.student.firstName} ${e.student.lastName}`);
   });
-  console.log("─".repeat(100));
 }
 
 async function createNewEnrollment() {
@@ -71,14 +87,20 @@ async function createNewEnrollment() {
     message: "Student ID:",
   });
 
+  if (isCancel(studentId)) return;
+
   const classId = await text({
     message: "Class ID:",
   });
+
+  if (isCancel(classId)) return;
 
   const academicYear = await text({
     message: "Academic Year:",
     placeholder: "2025",
   });
+
+  if (isCancel(academicYear)) return;
 
   const type = await select({
     message: "Enrollment Type:",
@@ -87,6 +109,8 @@ async function createNewEnrollment() {
       { value: "RE_ENROLLMENT", label: "Re-enrollment" },
     ],
   });
+
+  if (isCancel(type)) return;
 
   const s = spinner();
   s.start("Creating enrollment...");
@@ -111,6 +135,8 @@ async function validateExistingEnrollment() {
     message: "Enrollment ID:",
   });
 
+  if (isCancel(enrollmentId)) return;
+
   const s = spinner();
   s.start("Validating enrollment...");
 
@@ -128,10 +154,14 @@ async function createPriorityReEnrollment() {
     message: "Student ID:",
   });
 
+  if (isCancel(studentId)) return;
+
   const academicYear = await text({
     message: "Academic Year:",
     placeholder: "2025",
   });
+
+  if (isCancel(academicYear)) return;
 
   const s = spinner();
   s.start("Checking re-enrollment eligibility...");
@@ -158,6 +188,8 @@ async function createPriorityReEnrollment() {
     message: "Class ID:",
   });
 
+  if (isCancel(classId)) return;
+
   const s2 = spinner();
   s2.start("Creating priority re-enrollment...");
 
@@ -180,6 +212,8 @@ async function viewEnrollmentDetails() {
   const enrollmentId = await text({
     message: "Enrollment ID:",
   });
+
+  if (isCancel(enrollmentId)) return;
 
   const enrollment = await getEnrollmentWithDetails(enrollmentId as string);
   if (enrollment) {

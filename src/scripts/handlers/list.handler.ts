@@ -1,4 +1,4 @@
-import { select, spinner } from "@clack/prompts";
+import { select, spinner, isCancel } from "@clack/prompts";
 import { getAllClasses } from "../../services/class.service";
 import { getAllStudents, getAllGuardians } from "../../services/guardian.service";
 import { getAllEnrollments } from "../../services/enrollment.service";
@@ -18,8 +18,11 @@ export async function handleLists() {
       { value: "enrollments", label: "All Enrollments" },
       { value: "payments", label: "All Payments" },
       { value: "levels", label: "Levels & Slots" },
+      { value: "back", label: "Back" },
     ],
   });
+
+  if (isCancel(listType) || listType === "back") return;
 
   const s = spinner();
 
@@ -50,15 +53,28 @@ async function showAllClasses(s: Spinner) {
   const classes = await getAllClasses();
   s.stop();
 
+  if (classes.length === 0) {
+    console.log("\nNo classes found.");
+    return;
+  }
+
   console.log("\nAll Classes:");
-  console.log("─".repeat(100));
-  classes.forEach((c) => {
-    const status = c.availableSpots > 0 ? "[OK]" : "[FULL]";
-    console.log(
-      `${status} ${c.level.label.padEnd(12)} | ${c.slot.day.padEnd(10)} ${c.slot.period.padEnd(10)} | ${c.groupName.padEnd(15)} | ${c.enrolledCount}/${c.capacityMax}`
-    );
+  const tableData = classes.map((c) => ({
+    Status: c.availableSpots > 0 ? "OK" : "FULL",
+    Level: c.level.label,
+    Day: c.slot.day,
+    Period: c.slot.period,
+    Group: c.groupName,
+    Enrolled: c.enrolledCount,
+    Capacity: c.capacityMax,
+    Available: c.availableSpots,
+  }));
+  console.table(tableData, Object.keys(tableData[0]));
+  console.log(`\nTotal: ${classes.length} classes`);
+  console.log("\nClass IDs:");
+  classes.forEach((c, i) => {
+    console.log(`[${i}] ${c.id} - ${c.groupName}`);
   });
-  console.log("─".repeat(100));
 }
 
 async function showAllStudents(s: Spinner) {
@@ -66,15 +82,26 @@ async function showAllStudents(s: Spinner) {
   const students = await getAllStudents();
   s.stop();
 
+  if (students.length === 0) {
+    console.log("\nNo students found.");
+    return;
+  }
+
   console.log("\nAll Students:");
-  console.log("─".repeat(100));
-  students.forEach((student) => {
-    const statusIcon = student.folderStatus === "ACTIVE" ? "[ACTIVE]" : "[BLOCKED]";
-    console.log(
-      `${statusIcon} ${student.firstName} ${student.lastName} | ${student.birthDate} | ${student.gender} | ${student.familyLinks.length} guardian(s)`
-    );
+  const tableData = students.map((student) => ({
+    Status: student.folderStatus,
+    "First Name": student.firstName,
+    "Last Name": student.lastName,
+    "Birth Date": student.birthDate,
+    Gender: student.gender,
+    Guardians: student.familyLinks.length,
+  }));
+  console.table(tableData, Object.keys(tableData[0]));
+  console.log(`\nTotal: ${students.length} students`);
+  console.log("\nStudent IDs:");
+  students.forEach((student, i) => {
+    console.log(`[${i}] ${student.id} - ${student.firstName} ${student.lastName}`);
   });
-  console.log("─".repeat(100));
 }
 
 async function showAllGuardians(s: Spinner) {
@@ -82,14 +109,25 @@ async function showAllGuardians(s: Spinner) {
   const guardians = await getAllGuardians();
   s.stop();
 
+  if (guardians.length === 0) {
+    console.log("\nNo guardians found.");
+    return;
+  }
+
   console.log("\nAll Guardians:");
-  console.log("─".repeat(100));
-  guardians.forEach((g) => {
-    console.log(
-      `${g.type} | ${g.firstName} ${g.lastName} | ${g.mobilePhone} | ${g.familyLinks.length} student(s)`
-    );
+  const tableData = guardians.map((g) => ({
+    Type: g.type,
+    "First Name": g.firstName,
+    "Last Name": g.lastName,
+    Phone: g.mobilePhone,
+    Students: g.familyLinks.length,
+  }));
+  console.table(tableData, Object.keys(tableData[0]));
+  console.log(`\nTotal: ${guardians.length} guardians`);
+  console.log("\nGuardian IDs:");
+  guardians.forEach((g, i) => {
+    console.log(`[${i}] ${g.id} - ${g.firstName} ${g.lastName}`);
   });
-  console.log("─".repeat(100));
 }
 
 async function showAllEnrollments(s: Spinner) {
@@ -97,15 +135,27 @@ async function showAllEnrollments(s: Spinner) {
   const enrollments = await getAllEnrollments();
   s.stop();
 
+  if (enrollments.length === 0) {
+    console.log("\nNo enrollments found.");
+    return;
+  }
+
   console.log("\nAll Enrollments:");
-  console.log("─".repeat(100));
-  enrollments.forEach((e) => {
-    const statusIcon = e.status === "VALIDATED" ? "[VALIDATED]" : e.status === "PENDING" ? "[PENDING]" : "[CANCELLED]";
-    console.log(
-      `${statusIcon} ${e.student.firstName} ${e.student.lastName} | ${e.class.level.label} - ${e.class.groupName} | ${e.status} | Year ${e.academicYear}`
-    );
+  const tableData = enrollments.map((e) => ({
+    Status: e.status,
+    Student: `${e.student.firstName} ${e.student.lastName}`,
+    Level: e.class.level.label,
+    Group: e.class.groupName,
+    Year: e.academicYear,
+    Type: e.type,
+    Payments: e.payments.length,
+  }));
+  console.table(tableData, Object.keys(tableData[0]));
+  console.log(`\nTotal: ${enrollments.length} enrollments`);
+  console.log("\nEnrollment IDs:");
+  enrollments.forEach((e, i) => {
+    console.log(`[${i}] ${e.id} - ${e.student.firstName} ${e.student.lastName}`);
   });
-  console.log("─".repeat(100));
 }
 
 async function showAllPayments(s: Spinner) {
@@ -113,15 +163,26 @@ async function showAllPayments(s: Spinner) {
   const payments = await getAllPayments();
   s.stop();
 
+  if (payments.length === 0) {
+    console.log("\nNo payments found.");
+    return;
+  }
+
   console.log("\nAll Payments:");
-  console.log("─".repeat(100));
-  payments.forEach((p) => {
-    const statusIcon = p.status === "COMPLETED" ? "[COMPLETED]" : p.status === "BOUNCED" ? "[BOUNCED]" : "[PENDING]";
-    console.log(
-      `${statusIcon} ${p.enrollment.student.firstName} ${p.enrollment.student.lastName} | ${p.amount} DH | ${p.period} | ${p.status}`
-    );
+  const tableData = payments.map((p) => ({
+    Status: p.status,
+    Student: `${p.enrollment.student.firstName} ${p.enrollment.student.lastName}`,
+    Amount: `${p.amount} DH`,
+    Method: p.method,
+    Period: p.period,
+    Date: p.paymentDate.split("T")[0],
+  }));
+  console.table(tableData, Object.keys(tableData[0]));
+  console.log(`\nTotal: ${payments.length} payments`);
+  console.log("\nPayment IDs:");
+  payments.forEach((p, i) => {
+    console.log(`[${i}] ${p.id} - ${p.enrollment.student.firstName} ${p.enrollment.student.lastName}`);
   });
-  console.log("─".repeat(100));
 }
 
 async function showLevelsAndSlots(s: Spinner) {
@@ -131,10 +192,14 @@ async function showLevelsAndSlots(s: Spinner) {
   s.stop();
 
   console.log("\nLevels:");
-  allLevels.forEach((l) => console.log(`   - ${l.label}`));
+  console.table(allLevels.map((l) => ({ Label: l.label })));
 
   console.log("\nSlots:");
-  allSlots.forEach((s) =>
-    console.log(`   - ${s.day} | ${s.period} | ${s.startTime} - ${s.endTime}`)
-  );
+  const slotData = allSlots.map((sl) => ({
+    Day: sl.day,
+    Period: sl.period,
+    "Start Time": sl.startTime,
+    "End Time": sl.endTime,
+  }));
+  console.table(slotData);
 }

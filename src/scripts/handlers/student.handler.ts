@@ -1,4 +1,4 @@
-import { select, text, confirm, spinner } from "@clack/prompts";
+import { select, text, confirm, spinner, isCancel } from "@clack/prompts";
 import {
   createStudent,
   createGuardian,
@@ -18,8 +18,11 @@ export async function handleStudentManagement() {
       { value: "listGuardians", label: "List All Guardians" },
       { value: "create", label: "Create Student + Guardian (with duplicate check)" },
       { value: "view", label: "View Student with Guardians" },
+      { value: "back", label: "Back" },
     ],
   });
+
+  if (isCancel(action) || action === "back") return;
 
   switch (action) {
     case "list":
@@ -44,17 +47,26 @@ async function listStudents() {
   const students = await getAllStudents();
   s.stop();
 
+  if (students.length === 0) {
+    console.log("\nNo students found.");
+    return;
+  }
+
   console.log("\nAll Students:");
-  console.log("─".repeat(100));
-  students.forEach((student) => {
-    const guardianCount = student.familyLinks.length;
-    const statusIcon = student.folderStatus === "ACTIVE" ? "[ACTIVE]" : "[BLOCKED]";
-    console.log(
-      `${statusIcon} ${student.firstName} ${student.lastName} | Birth: ${student.birthDate} | ${student.gender} | ${guardianCount} guardian(s)`
-    );
-    console.log(`   ID: ${student.id}`);
+  const tableData = students.map((student) => ({
+    Status: student.folderStatus,
+    "First Name": student.firstName,
+    "Last Name": student.lastName,
+    "Birth Date": student.birthDate,
+    Gender: student.gender,
+    Guardians: student.familyLinks.length,
+  }));
+  console.table(tableData, Object.keys(tableData[0]));
+  console.log(`\nTotal: ${students.length} students`);
+  console.log("\nStudent IDs:");
+  students.forEach((student, i) => {
+    console.log(`[${i}] ${student.id} - ${student.firstName} ${student.lastName}`);
   });
-  console.log("─".repeat(100));
 }
 
 async function listGuardians() {
@@ -64,16 +76,25 @@ async function listGuardians() {
   const guardians = await getAllGuardians();
   s.stop();
 
+  if (guardians.length === 0) {
+    console.log("\nNo guardians found.");
+    return;
+  }
+
   console.log("\nAll Guardians:");
-  console.log("─".repeat(100));
-  guardians.forEach((guardian) => {
-    const studentCount = guardian.familyLinks.length;
-    console.log(
-      `${guardian.type} | ${guardian.firstName} ${guardian.lastName} | ${guardian.mobilePhone} | ${studentCount} student(s)`
-    );
-    console.log(`   ID: ${guardian.id}`);
+  const tableData = guardians.map((guardian) => ({
+    Type: guardian.type,
+    "First Name": guardian.firstName,
+    "Last Name": guardian.lastName,
+    Phone: guardian.mobilePhone,
+    Students: guardian.familyLinks.length,
+  }));
+  console.table(tableData, Object.keys(tableData[0]));
+  console.log(`\nTotal: ${guardians.length} guardians`);
+  console.log("\nGuardian IDs:");
+  guardians.forEach((guardian, i) => {
+    console.log(`[${i}] ${guardian.id} - ${guardian.firstName} ${guardian.lastName}`);
   });
-  console.log("─".repeat(100));
 }
 
 async function createStudentWithGuardian() {
@@ -82,15 +103,21 @@ async function createStudentWithGuardian() {
     placeholder: "Ahmed",
   });
 
+  if (isCancel(firstName)) return;
+
   const lastName = await text({
     message: "Student Last Name:",
     placeholder: "Ben Ali",
   });
 
+  if (isCancel(lastName)) return;
+
   const birthDate = await text({
     message: "Birth Date (YYYY-MM-DD):",
     placeholder: "2010-05-15",
   });
+
+  if (isCancel(birthDate)) return;
 
   const duplicates = await checkDuplicateStudent(
     firstName as string,
@@ -119,6 +146,8 @@ async function createStudentWithGuardian() {
     ],
   });
 
+  if (isCancel(gender)) return;
+
   const s = spinner();
   s.start("Creating student...");
 
@@ -135,66 +164,78 @@ async function createStudentWithGuardian() {
     message: "Add Guardian?",
   });
 
-  if (addGuardian) {
-    const guardianPhone = await text({
-      message: "Mobile Phone:",
-      placeholder: "+212600000000",
+  if (isCancel(addGuardian) || !addGuardian) return;
+
+  const guardianPhone = await text({
+    message: "Mobile Phone:",
+    placeholder: "+212600000000",
+  });
+
+  if (isCancel(guardianPhone)) return;
+
+  const existingGuardian = await findGuardianByPhone(guardianPhone as string);
+
+  if (existingGuardian) {
+    console.log(
+      `\nFound existing guardian: ${existingGuardian.firstName} ${existingGuardian.lastName}`
+    );
+    console.log(`   Type: ${existingGuardian.type}`);
+    console.log(`   Students: ${existingGuardian.familyLinks.length}`);
+
+    const useExisting = await confirm({
+      message: "Link to this existing guardian?",
     });
 
-    const existingGuardian = await findGuardianByPhone(guardianPhone as string);
+    if (isCancel(useExisting)) return;
 
-    if (existingGuardian) {
-      console.log(
-        `\\nFound existing guardian: ${existingGuardian.firstName} ${existingGuardian.lastName}`
-      );
-      console.log(`   Type: ${existingGuardian.type}`);
-      console.log(`   Students: ${existingGuardian.familyLinks.length}`);
-
-      const useExisting = await confirm({
-        message: "Link to this existing guardian?",
-      });
-
-      if (useExisting) {
-        await linkGuardianToStudent(existingGuardian.id, student.id);
-        console.log(`Guardian linked to student`);
-        return;
-      }
+    if (useExisting) {
+      await linkGuardianToStudent(existingGuardian.id, student.id);
+      console.log(`Guardian linked to student`);
+      return;
     }
-
-    const guardianFirstName = await text({
-      message: "Guardian First Name:",
-    });
-
-    const guardianLastName = await text({
-      message: "Guardian Last Name:",
-    });
-
-    const guardianType = await select({
-      message: "Guardian Type:",
-      options: [
-        { value: "FATHER", label: "Father" },
-        { value: "MOTHER", label: "Mother" },
-        { value: "TUTOR", label: "Tutor" },
-      ],
-    });
-
-    const guardian = await createGuardian({
-      type: guardianType as "FATHER" | "MOTHER" | "TUTOR",
-      firstName: guardianFirstName as string,
-      lastName: guardianLastName as string,
-      mobilePhone: guardianPhone as string,
-    });
-
-    await linkGuardianToStudent(guardian.id, student.id);
-
-    console.log(`Guardian linked to student`);
   }
+
+  const guardianFirstName = await text({
+    message: "Guardian First Name:",
+  });
+
+  if (isCancel(guardianFirstName)) return;
+
+  const guardianLastName = await text({
+    message: "Guardian Last Name:",
+  });
+
+  if (isCancel(guardianLastName)) return;
+
+  const guardianType = await select({
+    message: "Guardian Type:",
+    options: [
+      { value: "FATHER", label: "Father" },
+      { value: "MOTHER", label: "Mother" },
+      { value: "TUTOR", label: "Tutor" },
+    ],
+  });
+
+  if (isCancel(guardianType)) return;
+
+  const guardian = await createGuardian({
+    type: guardianType as "FATHER" | "MOTHER" | "TUTOR",
+    firstName: guardianFirstName as string,
+    lastName: guardianLastName as string,
+    mobilePhone: guardianPhone as string,
+  });
+
+  await linkGuardianToStudent(guardian.id, student.id);
+
+  console.log(`Guardian linked to student`);
 }
 
 async function viewStudentWithGuardians() {
   const studentId = await text({
     message: "Enter Student ID:",
   });
+
+  if (isCancel(studentId)) return;
 
   const student = await getStudentWithGuardians(studentId as string);
   if (student) {

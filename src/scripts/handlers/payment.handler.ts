@@ -1,4 +1,4 @@
-import { select, text, confirm, spinner } from "@clack/prompts";
+import { select, text, confirm, spinner, isCancel } from "@clack/prompts";
 import {
   createPayment,
   markPaymentAsBounced,
@@ -18,8 +18,11 @@ export async function handlePaymentManagement() {
       { value: "create", label: "Create Payment" },
       { value: "bounce", label: "Test Bounced Check (Block Student)" },
       { value: "balance", label: "Check Enrollment Balance" },
+      { value: "back", label: "Back" },
     ],
   });
+
+  if (isCancel(action) || action === "back") return;
 
   switch (action) {
     case "list":
@@ -50,16 +53,26 @@ async function listAllPayments() {
   const payments = await getAllPayments();
   s.stop();
 
+  if (payments.length === 0) {
+    console.log("\nNo payments found.");
+    return;
+  }
+
   console.log("\nAll Payments:");
-  console.log("─".repeat(100));
-  payments.forEach((p) => {
-    const statusIcon = p.status === "COMPLETED" ? "[COMPLETED]" : p.status === "BOUNCED" ? "[BOUNCED]" : "[PENDING]";
-    console.log(
-      `${statusIcon} ${p.enrollment.student.firstName} ${p.enrollment.student.lastName} | ${p.amount} DH | ${p.method} | ${p.period} | ${p.status}`
-    );
-    console.log(`   ID: ${p.id} | Date: ${p.paymentDate}`);
+  const tableData = payments.map((p) => ({
+    Status: p.status,
+    Student: `${p.enrollment.student.firstName} ${p.enrollment.student.lastName}`,
+    Amount: `${p.amount} DH`,
+    Method: p.method,
+    Period: p.period,
+    Date: p.paymentDate.split("T")[0],
+  }));
+  console.table(tableData, Object.keys(tableData[0]));
+  console.log(`\nTotal: ${payments.length} payments`);
+  console.log("\nPayment IDs:");
+  payments.forEach((p, i) => {
+    console.log(`[${i}] ${p.id} - ${p.enrollment.student.firstName} ${p.enrollment.student.lastName}`);
   });
-  console.log("─".repeat(100));
 }
 
 async function listBouncedPayments() {
@@ -69,20 +82,26 @@ async function listBouncedPayments() {
   const bouncedPayments = await getPaymentsByStatus("BOUNCED");
   s.stop();
 
-  console.log("\nBounced Payments:");
-  console.log("─".repeat(100));
   if (bouncedPayments.length === 0) {
-    console.log("No bounced payments found.");
-  } else {
-    bouncedPayments.forEach((p) => {
-      console.log(
-        `[BOUNCED] ${p.enrollment.student.firstName} ${p.enrollment.student.lastName} | ${p.amount} DH | ${p.method} | ${p.period}`
-      );
-      console.log(`   Payment ID: ${p.id} | Date: ${p.paymentDate}`);
-      console.log(`   Student Status: ${p.enrollment.student.folderStatus}`);
-    });
+    console.log("\nNo bounced payments found.");
+    return;
   }
-  console.log("─".repeat(100));
+
+  console.log("\nBounced Payments:");
+  const tableData = bouncedPayments.map((p) => ({
+    Student: `${p.enrollment.student.firstName} ${p.enrollment.student.lastName}`,
+    Amount: `${p.amount} DH`,
+    Method: p.method,
+    Period: p.period,
+    Date: p.paymentDate.split("T")[0],
+    "Student Status": p.enrollment.student.folderStatus,
+  }));
+  console.table(tableData, Object.keys(tableData[0]));
+  console.log(`\nTotal: ${bouncedPayments.length} bounced payments`);
+  console.log("\nPayment IDs:");
+  bouncedPayments.forEach((p, i) => {
+    console.log(`[${i}] ${p.id} - ${p.enrollment.student.firstName} ${p.enrollment.student.lastName}`);
+  });
 }
 
 async function createNewPayment() {
@@ -90,10 +109,14 @@ async function createNewPayment() {
     message: "Enrollment ID:",
   });
 
+  if (isCancel(enrollmentId)) return;
+
   const amount = await text({
     message: "Amount:",
     placeholder: "500",
   });
+
+  if (isCancel(amount)) return;
 
   const method = await select({
     message: "Payment Method:",
@@ -104,6 +127,8 @@ async function createNewPayment() {
     ],
   });
 
+  if (isCancel(method)) return;
+
   const period = await select({
     message: "Payment Period:",
     options: [
@@ -113,6 +138,8 @@ async function createNewPayment() {
       { value: "Q3", label: "Q3" },
     ],
   });
+
+  if (isCancel(period)) return;
 
   const s = spinner();
   s.start("Processing payment...");
@@ -132,11 +159,13 @@ async function testBouncedCheck() {
     message: "Payment ID to mark as BOUNCED:",
   });
 
+  if (isCancel(paymentId)) return;
+
   const confirm_ = await confirm({
     message: "This will BLOCK the student. Continue?",
   });
 
-  if (!confirm_) return;
+  if (isCancel(confirm_) || !confirm_) return;
 
   const s = spinner();
   s.start("Marking payment as bounced...");
@@ -154,10 +183,14 @@ async function showUnpaidDashboard() {
     placeholder: "2025",
   });
 
+  if (isCancel(year)) return;
+
   const expectedTotal = await text({
     message: "Expected Total Amount:",
     placeholder: "2000",
   });
+
+  if (isCancel(expectedTotal)) return;
 
   const s = spinner();
   s.start("Generating unpaid students report...");
@@ -169,26 +202,25 @@ async function showUnpaidDashboard() {
 
   s.stop();
 
-  console.log(`\\nUnpaid Students Dashboard - Year ${report.academicYear}`);
-  console.log("─".repeat(120));
+  console.log(`\nUnpaid Students Dashboard - Year ${report.academicYear}`);
   console.log(`Total Unpaid Students: ${report.totalUnpaid}`);
-  console.log(`Total Outstanding Debt: ${report.totalDebt} DH`);
-  console.log("─".repeat(120));
+  console.log(`Total Outstanding Debt: ${report.totalDebt} DH\n`);
 
   if (report.students.length === 0) {
     console.log("All students have paid in full.");
   } else {
-    report.students.forEach((student) => {
-      const statusIcon = student.folderStatus === "ACTIVE" ? "[ACTIVE]" : "[BLOCKED]";
-      const bouncedFlag = student.hasBouncedPayments ? "[BOUNCED]" : "";
-      const pendingFlag = student.hasPendingPayments ? "[PENDING]" : "";
-
-      console.log(
-        `${statusIcon} ${student.studentName.padEnd(25)} | ${student.level.padEnd(12)} | Balance: ${student.balance} DH | Paid: ${student.totalPaid} DH ${bouncedFlag} ${pendingFlag}`
-      );
-      console.log(`   Group: ${student.groupName} | Payments: ${student.paymentCount}`);
-    });
-    console.log("─".repeat(120));
+    const tableData = report.students.map((student) => ({
+      Status: student.folderStatus,
+      Student: student.studentName,
+      Level: student.level,
+      Group: student.groupName,
+      Paid: `${student.totalPaid} DH`,
+      Balance: `${student.balance} DH`,
+      Payments: student.paymentCount,
+      Bounced: student.hasBouncedPayments ? "Yes" : "No",
+      Pending: student.hasPendingPayments ? "Yes" : "No",
+    }));
+    console.table(tableData, Object.keys(tableData[0]));
   }
 }
 
@@ -196,6 +228,8 @@ async function checkEnrollmentBalance() {
   const enrollmentId = await text({
     message: "Enrollment ID:",
   });
+
+  if (isCancel(enrollmentId)) return;
 
   const balance = await getEnrollmentBalance(enrollmentId as string, 2000);
 

@@ -1,4 +1,4 @@
-import { select, text, spinner } from "@clack/prompts";
+import { select, text, spinner, isCancel } from "@clack/prompts";
 import { 
   createClass, 
   getAllClasses, 
@@ -16,8 +16,11 @@ export async function handleClassManagement() {
       { value: "create", label: "Create New Class (Group)" },
       { value: "check", label: "Check Class Availability" },
       { value: "find", label: "Find Available Classes for Level/Slot" },
+      { value: "back", label: "Back" },
     ],
   });
+
+  if (isCancel(action) || action === "back") return;
 
   switch (action) {
     case "list":
@@ -42,16 +45,28 @@ async function listClasses() {
   const allClasses = await getAllClasses();
   s.stop();
 
+  if (allClasses.length === 0) {
+    console.log("\nNo classes found.");
+    return;
+  }
+
   console.log("\nAll Classes:");
-  console.log("─".repeat(100));
-  allClasses.forEach((c) => {
-    const status = c.availableSpots > 0 ? "[OK]" : "[FULL]";
-    console.log(
-      `${status} ${c.level.label.padEnd(12)} | ${c.slot.day.padEnd(10)} ${c.slot.period.padEnd(10)} | ${c.groupName.padEnd(15)} | ${c.enrolledCount}/${c.capacityMax} (${c.availableSpots} spots)`
-    );
-    console.log(`   ID: ${c.id}`);
+  const tableData = allClasses.map((c) => ({
+    Status: c.availableSpots > 0 ? "OK" : "FULL",
+    Level: c.level.label,
+    Day: c.slot.day,
+    Period: c.slot.period,
+    Group: c.groupName,
+    Enrolled: c.enrolledCount,
+    Capacity: c.capacityMax,
+    Available: c.availableSpots,
+  }));
+  console.table(tableData, Object.keys(tableData[0]));
+  console.log(`\nTotal: ${allClasses.length} classes`);
+  console.log("\nClass IDs:");
+  allClasses.forEach((c, i) => {
+    console.log(`[${i}] ${c.id} - ${c.groupName}`);
   });
-  console.log("─".repeat(100));
 }
 
 async function createNewClass() {
@@ -60,6 +75,8 @@ async function createNewClass() {
     message: "Select Level:",
     options: allLevels.map((l) => ({ value: l.id, label: l.label })),
   });
+
+  if (isCancel(levelId)) return;
 
   const allSlots = await db.select().from(slots);
   const slotId = await select({
@@ -70,15 +87,21 @@ async function createNewClass() {
     })),
   });
 
+  if (isCancel(slotId)) return;
+
   const groupName = await text({
     message: "Group Name (e.g., Group A):",
     placeholder: "Group A",
   });
 
+  if (isCancel(groupName)) return;
+
   const capacity = await text({
     message: "Maximum Capacity:",
     placeholder: "20",
   });
+
+  if (isCancel(capacity)) return;
 
   const s = spinner();
   s.start("Creating class...");
@@ -99,6 +122,8 @@ async function checkClassAvailability() {
     placeholder: "uuid",
   });
 
+  if (isCancel(classId)) return;
+
   const classInfo = await getClassWithAvailability(classId as string);
   if (classInfo) {
     console.log("\n📊 Class Information:");
@@ -117,6 +142,8 @@ async function findAvailableClassesForLevelSlot() {
     options: allLevels.map((l) => ({ value: l.id, label: l.label })),
   });
 
+  if (isCancel(levelId)) return;
+
   const allSlots = await db.select().from(slots);
   const slotId = await select({
     message: "Select Slot:",
@@ -125,6 +152,8 @@ async function findAvailableClassesForLevelSlot() {
       label: `${s.day} - ${s.period}`,
     })),
   });
+
+  if (isCancel(slotId)) return;
 
   const availableClasses = await findAvailableClasses(
     levelId as string,
