@@ -116,3 +116,18 @@ export async function getAllGuardians() {
     },
   });
 }
+
+export async function findGuardianByPhone(mobilePhone: string) {
+  const guardian = await db.query.guardians.findFirst({
+    where: eq(guardians.mobilePhone, mobilePhone),
+    with: {
+      familyLinks: {
+        with: {
+          student: true,
+        },
+      },
+    },
+  });
+
+  return guardian;
+}

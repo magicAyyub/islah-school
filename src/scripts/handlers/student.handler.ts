@@ -7,6 +7,7 @@ import {
   getStudentWithGuardians,
   getAllStudents,
   getAllGuardians,
+  findGuardianByPhone,
 } from "../../services/guardian.service";
 
 export async function handleStudentManagement() {
@@ -135,16 +136,37 @@ async function createStudentWithGuardian() {
   });
 
   if (addGuardian) {
+    const guardianPhone = await text({
+      message: "Mobile Phone:",
+      placeholder: "+212600000000",
+    });
+
+    const existingGuardian = await findGuardianByPhone(guardianPhone as string);
+
+    if (existingGuardian) {
+      console.log(
+        `\\nFound existing guardian: ${existingGuardian.firstName} ${existingGuardian.lastName}`
+      );
+      console.log(`   Type: ${existingGuardian.type}`);
+      console.log(`   Students: ${existingGuardian.familyLinks.length}`);
+
+      const useExisting = await confirm({
+        message: "Link to this existing guardian?",
+      });
+
+      if (useExisting) {
+        await linkGuardianToStudent(existingGuardian.id, student.id);
+        console.log(`Guardian linked to student`);
+        return;
+      }
+    }
+
     const guardianFirstName = await text({
       message: "Guardian First Name:",
     });
 
     const guardianLastName = await text({
       message: "Guardian Last Name:",
-    });
-
-    const guardianPhone = await text({
-      message: "Mobile Phone:",
     });
 
     const guardianType = await select({

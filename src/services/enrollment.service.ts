@@ -176,3 +176,78 @@ export async function getEnrollmentsByStudent(studentId: string) {
     },
   });
 }
+
+export async function checkReEnrollmentEligibility(studentId: string, academicYear: number) {
+  const previousEnrollments = await db.query.enrollments.findMany({
+    where: and(
+      eq(enrollments.studentId, studentId),
+      eq(enrollments.status, "VALIDATED")
+    ),
+    orderBy: (enrollments, { desc }) => [desc(enrollments.academicYear)],
+  });
+
+  const hasHistory = previousEnrollments.length > 0;
+  const lastYear = hasHistory ? previousEnrollments[0].academicYear : null;
+
+  return {
+    isReturning: hasHistory,
+    isPriority: hasHistory && lastYear === academicYear - 1,
+    lastAcademicYear: lastYear,
+    totalYears: previousEnrollments.length,
+  };
+}
+
+export async function createPriorityEnrollment(
+  params: CreateEnrollmentParams,
+//   priorityDeadline?: string
+): Promise<EnrollmentResult> {
+  const eligibility = await checkReEnrollmentEligibility(
+    params.studentId,
+    params.academicYear
+  );
+
+  if (eligibility.isPriority) {
+    const student = await db.query.students.findFirst({
+      where: eq(students.id, params.studentId),
+    });
+
+    if (!student) {
+      return { success: false, message: "Student not found" };
+    }
+
+    if (student.folderStatus === "BLOCKED") {
+      return { success: false, message: "Student folder is blocked" };
+    }
+
+    const existingEnrollment = await db.query.enrollments.findFirst({
+      where: and(
+        eq(enrollments.studentId, params.studentId),
+        eq(enrollments.academicYear, params.academicYear)
+      ),
+    });
+
+    if (existingEnrollment) {
+      return {
+        success: false,
+        message: "Student already enrolled for this academic year",
+      };
+    }
+
+    const [enrollment] = await db
+      .insert(enrollments)
+      .values({
+        ...params,
+        status: "PENDING",
+        type: "RE_ENROLLMENT",
+      })
+      .returning();
+
+    return {
+      success: true,
+      enrollment,
+      message: `Priority re-enrollment created (${eligibility.totalYears} years of history)`,
+    };
+  }
+
+  return createEnrollment(params);
+}

@@ -5,6 +5,7 @@ import {
   getEnrollmentBalance,
   getAllPayments,
   getPaymentsByStatus,
+  getUnpaidStudents,
 } from "../../services/payment.service";
 
 export async function handlePaymentManagement() {
@@ -13,6 +14,7 @@ export async function handlePaymentManagement() {
     options: [
       { value: "list", label: "List All Payments" },
       { value: "bounced", label: "List Bounced Payments" },
+      { value: "unpaid", label: "Unpaid Students Dashboard" },
       { value: "create", label: "Create Payment" },
       { value: "bounce", label: "Test Bounced Check (Block Student)" },
       { value: "balance", label: "Check Enrollment Balance" },
@@ -25,6 +27,9 @@ export async function handlePaymentManagement() {
       break;
     case "bounced":
       await listBouncedPayments();
+      break;
+    case "unpaid":
+      await showUnpaidDashboard();
       break;
     case "create":
       await createNewPayment();
@@ -140,6 +145,50 @@ async function testBouncedCheck() {
 
   if (result.success) {
     s.stop(`CRITICAL: ${result.message}`);
+  }
+}
+
+async function showUnpaidDashboard() {
+  const year = await text({
+    message: "Academic Year:",
+    placeholder: "2025",
+  });
+
+  const expectedTotal = await text({
+    message: "Expected Total Amount:",
+    placeholder: "2000",
+  });
+
+  const s = spinner();
+  s.start("Generating unpaid students report...");
+
+  const report = await getUnpaidStudents(
+    parseInt(year as string),
+    parseInt(expectedTotal as string)
+  );
+
+  s.stop();
+
+  console.log(`\\nUnpaid Students Dashboard - Year ${report.academicYear}`);
+  console.log("─".repeat(120));
+  console.log(`Total Unpaid Students: ${report.totalUnpaid}`);
+  console.log(`Total Outstanding Debt: ${report.totalDebt} DH`);
+  console.log("─".repeat(120));
+
+  if (report.students.length === 0) {
+    console.log("All students have paid in full.");
+  } else {
+    report.students.forEach((student) => {
+      const statusIcon = student.folderStatus === "ACTIVE" ? "[ACTIVE]" : "[BLOCKED]";
+      const bouncedFlag = student.hasBouncedPayments ? "[BOUNCED]" : "";
+      const pendingFlag = student.hasPendingPayments ? "[PENDING]" : "";
+
+      console.log(
+        `${statusIcon} ${student.studentName.padEnd(25)} | ${student.level.padEnd(12)} | Balance: ${student.balance} DH | Paid: ${student.totalPaid} DH ${bouncedFlag} ${pendingFlag}`
+      );
+      console.log(`   Group: ${student.groupName} | Payments: ${student.paymentCount}`);
+    });
+    console.log("─".repeat(120));
   }
 }
 

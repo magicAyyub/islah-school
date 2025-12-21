@@ -4,6 +4,8 @@ import {
   validateEnrollment,
   getEnrollmentWithDetails,
   getAllEnrollments,
+  checkReEnrollmentEligibility,
+  createPriorityEnrollment,
 } from "../../services/enrollment.service";
 
 export async function handleEnrollmentManagement() {
@@ -12,6 +14,7 @@ export async function handleEnrollmentManagement() {
     options: [
       { value: "list", label: "List All Enrollments" },
       { value: "create", label: "Create Enrollment (Capacity Check)" },
+      { value: "priority", label: "Priority Re-enrollment (Returning Students)" },
       { value: "validate", label: "Validate Enrollment" },
       { value: "view", label: "View Enrollment Details" },
     ],
@@ -23,6 +26,9 @@ export async function handleEnrollmentManagement() {
       break;
     case "create":
       await createNewEnrollment();
+      break;
+    case "priority":
+      await createPriorityReEnrollment();
       break;
     case "validate":
       await validateExistingEnrollment();
@@ -114,6 +120,59 @@ async function validateExistingEnrollment() {
     s.stop(`Success: ${result.message}`);
   } else {
     s.stop(`Error: ${result.message}`);
+  }
+}
+
+async function createPriorityReEnrollment() {
+  const studentId = await text({
+    message: "Student ID:",
+  });
+
+  const academicYear = await text({
+    message: "Academic Year:",
+    placeholder: "2025",
+  });
+
+  const s = spinner();
+  s.start("Checking re-enrollment eligibility...");
+
+  const eligibility = await checkReEnrollmentEligibility(
+    studentId as string,
+    parseInt(academicYear as string)
+  );
+
+  s.stop();
+
+  console.log("\\nEligibility Status:");
+  console.log(`   Returning Student: ${eligibility.isReturning ? "Yes" : "No"}`);
+  console.log(`   Priority Status: ${eligibility.isPriority ? "Yes" : "No"}`);
+  console.log(`   Last Year: ${eligibility.lastAcademicYear || "N/A"}`);
+  console.log(`   Total Years: ${eligibility.totalYears}`);
+
+  if (!eligibility.isPriority) {
+    console.log("\\nStudent does not have priority re-enrollment status.");
+    return;
+  }
+
+  const classId = await text({
+    message: "Class ID:",
+  });
+
+  const s2 = spinner();
+  s2.start("Creating priority re-enrollment...");
+
+  const result = await createPriorityEnrollment({
+    studentId: studentId as string,
+    classId: classId as string,
+    academicYear: parseInt(academicYear as string),
+    type: "RE_ENROLLMENT",
+  });
+
+  if (result.success) {
+    s2.stop(`Success: ${result.message}`);
+    console.log(`   Enrollment ID: ${result.enrollment?.id}`);
+  } else {
+    s2.stop(`Error: ${result.message}`);
   }
 }
 

@@ -159,3 +159,54 @@ export async function getPaymentsByStatus(status: "COMPLETED" | "PENDING" | "BOU
     },
   });
 }
+
+export async function getUnpaidStudents(academicYear: number, expectedTotal: number = 2000) {
+  const allEnrollments = await db.query.enrollments.findMany({
+    where: eq(enrollments.academicYear, academicYear),
+    with: {
+      student: true,
+      class: {
+        with: {
+          level: true,
+        },
+      },
+      payments: true,
+    },
+  });
+
+  const unpaidList = allEnrollments
+    .filter((enrollment) => enrollment.status === "VALIDATED")
+    .map((enrollment) => {
+      const totalPaid = enrollment.payments
+        .filter((p) => p.status === "COMPLETED")
+        .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+
+      const balance = expectedTotal - totalPaid;
+      const paymentCount = enrollment.payments.filter((p) => p.status === "COMPLETED").length;
+      const hasPendingPayments = enrollment.payments.some((p) => p.status === "PENDING");
+      const hasBouncedPayments = enrollment.payments.some((p) => p.status === "BOUNCED");
+
+      return {
+        enrollmentId: enrollment.id,
+        studentId: enrollment.student.id,
+        studentName: `${enrollment.student.firstName} ${enrollment.student.lastName}`,
+        level: enrollment.class.level.label,
+        groupName: enrollment.class.groupName,
+        folderStatus: enrollment.student.folderStatus,
+        totalPaid,
+        balance,
+        paymentCount,
+        hasPendingPayments,
+        hasBouncedPayments,
+      };
+    })
+    .filter((record) => record.balance > 0)
+    .sort((a, b) => b.balance - a.balance);
+
+  return {
+    academicYear,
+    totalUnpaid: unpaidList.length,
+    totalDebt: unpaidList.reduce((sum, r) => sum + r.balance, 0),
+    students: unpaidList,
+  };
+}
