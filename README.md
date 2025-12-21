@@ -211,3 +211,54 @@ const result = await markPaymentAsBounced(paymentId);
 ## Production
 
 Use Neon or Supabase for PostgreSQL. Update `DATABASE_URL` in `.env`.
+
+## Feature Coverage
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| **Structure & Capacity** | | |
+| Levels & Slots Management | Done | Seed data provided |
+| Class Configuration (Level + Slot) | Done | Multi-group support |
+| Capacity Max & Locking | Done | Automatic enrollment blocking |
+| Real-time Fill Tracking | Done | Available spots calculated |
+| **Enrollment Logic** | | |
+| Sibling Management (Family Links) | Done | Junction table implementation |
+| Guardian Duplicate Prevention | Partial | Student check exists, no phone lookup |
+| Folder Status (ACTIVE/BLOCKED) | Done | Controls enrollment access |
+| PENDING to VALIDATED Flow | Done | Manual validation after payment |
+| NEW vs RE_ENROLLMENT Type | Done | Tracked in enrollment |
+| Priority Re-enrollment Logic | Missing | No implementation yet |
+| **Financial Tracking** | | |
+| Payment Recording (Cash/Check/Card) | Done | All methods supported |
+| Period Attribution (REGISTRATION, Q1-Q3) | Done | Full period tracking |
+| Bounced Check Automation | Done | Automatic student blocking |
+| Balance Calculation | Done | Excludes PENDING/BOUNCED |
+| PDF Receipt Generation | Missing | Backend-ready, not implemented |
+| Receipt Storage & Re-print | Missing | No implementation |
+| Unpaid Students Dashboard | Partial | Can query, no specific view |
+| **Notifications & Alerts** | | |
+| Admin Alerts (Capacity, Checks) | Missing | Entire module not implemented |
+| Email/SMS to Parents | Missing | No communication system |
+| Enrollment Confirmation | Missing | No automated messages |
+| Re-enrollment Reminders | Missing | No priority system |
+| Payment Reminders | Missing | No automated reminders |
+
+## Next Steps (Roadmap)
+
+### Phase 1: Core Missing Features
+1. Guardian phone lookup to prevent duplicates
+2. Priority re-enrollment logic for existing students
+3. Unpaid students dashboard view
+
+### Phase 2: Receipt System
+1. PDF generation library integration (pdfkit or puppeteer)
+2. Receipt template design
+3. Storage in database or file system
+4. Re-print functionality
+
+### Phase 3: Notification System
+1. Email service integration (Resend, SendGrid, or Brevo)
+2. SMS service integration (Twilio)
+3. Admin alert triggers (capacity warnings, bounced checks)
+4. Parent communication templates
+5. Automated re-enrollment campaigns
