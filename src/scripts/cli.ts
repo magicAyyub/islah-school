@@ -8,22 +8,22 @@ import { handleLists } from "./handlers/list.handler";
 
 async function main() {
   console.clear();
-  intro("🎓 École Islah - School Management CLI");
+  intro("Islah School Management CLI");
 
   const action = await select({
     message: "What would you like to do?",
     options: [
-      { value: "class", label: "📚 Class Management (Capacity, Groups)" },
-      { value: "student", label: "👨‍🎓 Student & Guardian Management (CRM)" },
-      { value: "enrollment", label: "📝 Enrollment Management (Validation Flow)" },
-      { value: "payment", label: "💰 Payment Management (Bounced Check Test)" },
-      { value: "lists", label: "📋 View Lists (Classes, Students, Enrollments)" },
-      { value: "exit", label: "❌ Exit" },
+      { value: "class", label: "Class Management (Capacity, Groups)" },
+      { value: "student", label: "Student & Guardian Management (CRM)" },
+      { value: "enrollment", label: "Enrollment Management (Validation Flow)" },
+      { value: "payment", label: "Payment Management (Bounced Check Test)" },
+      { value: "lists", label: "View Lists (Classes, Students, Enrollments)" },
+      { value: "exit", label: "Exit" },
     ],
   });
 
   if (action === "exit") {
-    outro("👋 Goodbye!");
+    outro("Goodbye!");
     process.exit(0);
   }
 
@@ -45,7 +45,7 @@ async function main() {
       break;
   }
 
-  outro("✨ Done!");
+  outro("Done!");
   process.exit(0);
 }
 

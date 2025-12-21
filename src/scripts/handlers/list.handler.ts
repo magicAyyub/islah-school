@@ -12,12 +12,12 @@ export async function handleLists() {
   const listType = await select({
     message: "What would you like to view?",
     options: [
-      { value: "classes", label: "📚 All Classes" },
-      { value: "students", label: "👨‍🎓 All Students" },
-      { value: "guardians", label: "👨‍👩‍👧 All Guardians" },
-      { value: "enrollments", label: "📝 All Enrollments" },
-      { value: "payments", label: "💰 All Payments" },
-      { value: "levels", label: "📊 Levels & Slots" },
+      { value: "classes", label: "All Classes" },
+      { value: "students", label: "All Students" },
+      { value: "guardians", label: "All Guardians" },
+      { value: "enrollments", label: "All Enrollments" },
+      { value: "payments", label: "All Payments" },
+      { value: "levels", label: "Levels & Slots" },
     ],
   });
 
@@ -50,10 +50,10 @@ async function showAllClasses(s: Spinner) {
   const classes = await getAllClasses();
   s.stop();
 
-  console.log("\n📚 All Classes:");
+  console.log("\nAll Classes:");
   console.log("─".repeat(100));
   classes.forEach((c) => {
-    const status = c.availableSpots > 0 ? "✅" : "🔴";
+    const status = c.availableSpots > 0 ? "[OK]" : "[FULL]";
     console.log(
       `${status} ${c.level.label.padEnd(12)} | ${c.slot.day.padEnd(10)} ${c.slot.period.padEnd(10)} | ${c.groupName.padEnd(15)} | ${c.enrolledCount}/${c.capacityMax}`
     );
@@ -66,10 +66,10 @@ async function showAllStudents(s: Spinner) {
   const students = await getAllStudents();
   s.stop();
 
-  console.log("\n👨‍🎓 All Students:");
+  console.log("\nAll Students:");
   console.log("─".repeat(100));
   students.forEach((student) => {
-    const statusIcon = student.folderStatus === "ACTIVE" ? "✅" : "🔴";
+    const statusIcon = student.folderStatus === "ACTIVE" ? "[ACTIVE]" : "[BLOCKED]";
     console.log(
       `${statusIcon} ${student.firstName} ${student.lastName} | ${student.birthDate} | ${student.gender} | ${student.familyLinks.length} guardian(s)`
     );
@@ -82,7 +82,7 @@ async function showAllGuardians(s: Spinner) {
   const guardians = await getAllGuardians();
   s.stop();
 
-  console.log("\n👨‍👩‍👧 All Guardians:");
+  console.log("\nAll Guardians:");
   console.log("─".repeat(100));
   guardians.forEach((g) => {
     console.log(
@@ -97,10 +97,10 @@ async function showAllEnrollments(s: Spinner) {
   const enrollments = await getAllEnrollments();
   s.stop();
 
-  console.log("\n📝 All Enrollments:");
+  console.log("\nAll Enrollments:");
   console.log("─".repeat(100));
   enrollments.forEach((e) => {
-    const statusIcon = e.status === "VALIDATED" ? "✅" : e.status === "PENDING" ? "⏳" : "❌";
+    const statusIcon = e.status === "VALIDATED" ? "[VALIDATED]" : e.status === "PENDING" ? "[PENDING]" : "[CANCELLED]";
     console.log(
       `${statusIcon} ${e.student.firstName} ${e.student.lastName} | ${e.class.level.label} - ${e.class.groupName} | ${e.status} | Year ${e.academicYear}`
     );
@@ -113,10 +113,10 @@ async function showAllPayments(s: Spinner) {
   const payments = await getAllPayments();
   s.stop();
 
-  console.log("\n💰 All Payments:");
+  console.log("\nAll Payments:");
   console.log("─".repeat(100));
   payments.forEach((p) => {
-    const statusIcon = p.status === "COMPLETED" ? "✅" : p.status === "BOUNCED" ? "🚨" : "⏳";
+    const statusIcon = p.status === "COMPLETED" ? "[COMPLETED]" : p.status === "BOUNCED" ? "[BOUNCED]" : "[PENDING]";
     console.log(
       `${statusIcon} ${p.enrollment.student.firstName} ${p.enrollment.student.lastName} | ${p.amount} DH | ${p.period} | ${p.status}`
     );
@@ -130,10 +130,10 @@ async function showLevelsAndSlots(s: Spinner) {
   const allSlots = await db.select().from(slots);
   s.stop();
 
-  console.log("\n📊 Levels:");
+  console.log("\nLevels:");
   allLevels.forEach((l) => console.log(`   - ${l.label}`));
 
-  console.log("\n⏰ Slots:");
+  console.log("\nSlots:");
   allSlots.forEach((s) =>
     console.log(`   - ${s.day} | ${s.period} | ${s.startTime} - ${s.endTime}`)
   );

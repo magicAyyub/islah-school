@@ -12,7 +12,7 @@ export async function handleClassManagement() {
   const action = await select({
     message: "Class Management:",
     options: [
-      { value: "list", label: "📋 List All Classes" },
+      { value: "list", label: "List All Classes" },
       { value: "create", label: "Create New Class (Group)" },
       { value: "check", label: "Check Class Availability" },
       { value: "find", label: "Find Available Classes for Level/Slot" },
@@ -42,10 +42,10 @@ async function listClasses() {
   const allClasses = await getAllClasses();
   s.stop();
 
-  console.log("\n📚 All Classes:");
+  console.log("\nAll Classes:");
   console.log("─".repeat(100));
   allClasses.forEach((c) => {
-    const status = c.availableSpots > 0 ? "✅" : "🔴";
+    const status = c.availableSpots > 0 ? "[OK]" : "[FULL]";
     console.log(
       `${status} ${c.level.label.padEnd(12)} | ${c.slot.day.padEnd(10)} ${c.slot.period.padEnd(10)} | ${c.groupName.padEnd(15)} | ${c.enrolledCount}/${c.capacityMax} (${c.availableSpots} spots)`
     );
@@ -90,7 +90,7 @@ async function createNewClass() {
     capacityMax: parseInt(capacity as string),
   });
 
-  s.stop(`✅ Class ${newClass.groupName} created with capacity ${newClass.capacityMax}`);
+  s.stop(`Class ${newClass.groupName} created with capacity ${newClass.capacityMax}`);
 }
 
 async function checkClassAvailability() {

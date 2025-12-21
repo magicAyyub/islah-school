@@ -13,8 +13,8 @@ export async function handleStudentManagement() {
   const action = await select({
     message: "Student Management:",
     options: [
-      { value: "list", label: "📋 List All Students" },
-      { value: "listGuardians", label: "📋 List All Guardians" },
+      { value: "list", label: "List All Students" },
+      { value: "listGuardians", label: "List All Guardians" },
       { value: "create", label: "Create Student + Guardian (with duplicate check)" },
       { value: "view", label: "View Student with Guardians" },
     ],
@@ -43,11 +43,11 @@ async function listStudents() {
   const students = await getAllStudents();
   s.stop();
 
-  console.log("\n👨‍🎓 All Students:");
+  console.log("\nAll Students:");
   console.log("─".repeat(100));
   students.forEach((student) => {
     const guardianCount = student.familyLinks.length;
-    const statusIcon = student.folderStatus === "ACTIVE" ? "✅" : "🔴";
+    const statusIcon = student.folderStatus === "ACTIVE" ? "[ACTIVE]" : "[BLOCKED]";
     console.log(
       `${statusIcon} ${student.firstName} ${student.lastName} | Birth: ${student.birthDate} | ${student.gender} | ${guardianCount} guardian(s)`
     );
@@ -63,7 +63,7 @@ async function listGuardians() {
   const guardians = await getAllGuardians();
   s.stop();
 
-  console.log("\n👨‍👩‍👧 All Guardians:");
+  console.log("\nAll Guardians:");
   console.log("─".repeat(100));
   guardians.forEach((guardian) => {
     const studentCount = guardian.familyLinks.length;
@@ -98,7 +98,7 @@ async function createStudentWithGuardian() {
   );
 
   if (duplicates.length > 0) {
-    console.log("\n⚠️  Warning: Potential duplicate student(s) found:");
+    console.log("\nWarning: Potential duplicate student(s) found:");
     duplicates.forEach((d) => {
       console.log(`   ${d.firstName} ${d.lastName} - ${d.birthDate}`);
     });
@@ -128,7 +128,7 @@ async function createStudentWithGuardian() {
     gender: gender as "MALE" | "FEMALE",
   });
 
-  s.stop(`✅ Student created: ${student.firstName} ${student.lastName}`);
+  s.stop(`Student created: ${student.firstName} ${student.lastName}`);
 
   const addGuardian = await confirm({
     message: "Add Guardian?",
@@ -165,7 +165,7 @@ async function createStudentWithGuardian() {
 
     await linkGuardianToStudent(guardian.id, student.id);
 
-    console.log(`✅ Guardian linked to student`);
+    console.log(`Guardian linked to student`);
   }
 }
 
@@ -176,7 +176,7 @@ async function viewStudentWithGuardians() {
 
   const student = await getStudentWithGuardians(studentId as string);
   if (student) {
-    console.log(`\n👨‍🎓 Student: ${student.firstName} ${student.lastName}`);
+    console.log(`\nStudent: ${student.firstName} ${student.lastName}`);
     console.log(`   Birth Date: ${student.birthDate}`);
     console.log(`   Folder Status: ${student.folderStatus}`);
     console.log("\n   Guardians:");

@@ -10,7 +10,7 @@ export async function handleEnrollmentManagement() {
   const action = await select({
     message: "Enrollment Management:",
     options: [
-      { value: "list", label: "📋 List All Enrollments" },
+      { value: "list", label: "List All Enrollments" },
       { value: "create", label: "Create Enrollment (Capacity Check)" },
       { value: "validate", label: "Validate Enrollment" },
       { value: "view", label: "View Enrollment Details" },
@@ -47,10 +47,10 @@ async function listEnrollments() {
     : await getAllEnrollments();
   s.stop();
 
-  console.log("\n📝 All Enrollments:");
+  console.log("\nAll Enrollments:");
   console.log("─".repeat(100));
   enrollments.forEach((e) => {
-    const statusIcon = e.status === "VALIDATED" ? "✅" : e.status === "PENDING" ? "⏳" : "❌";
+    const statusIcon = e.status === "VALIDATED" ? "[VALIDATED]" : e.status === "PENDING" ? "[PENDING]" : "[CANCELLED]";
     const paymentCount = e.payments.length;
     console.log(
       `${statusIcon} ${e.student.firstName} ${e.student.lastName} | ${e.class.level.label} - ${e.class.groupName} | ${e.status} | ${paymentCount} payment(s)`
@@ -93,10 +93,10 @@ async function createNewEnrollment() {
   });
 
   if (result.success) {
-    s.stop(`✅ ${result.message}`);
+    s.stop(`Success: ${result.message}`);
     console.log(`   Enrollment ID: ${result.enrollment?.id}`);
   } else {
-    s.stop(`❌ ${result.message}`);
+    s.stop(`Error: ${result.message}`);
   }
 }
 
@@ -111,9 +111,9 @@ async function validateExistingEnrollment() {
   const result = await validateEnrollment(enrollmentId as string);
 
   if (result.success) {
-    s.stop(`✅ ${result.message}`);
+    s.stop(`Success: ${result.message}`);
   } else {
-    s.stop(`❌ ${result.message}`);
+    s.stop(`Error: ${result.message}`);
   }
 }
 
@@ -124,7 +124,7 @@ async function viewEnrollmentDetails() {
 
   const enrollment = await getEnrollmentWithDetails(enrollmentId as string);
   if (enrollment) {
-    console.log(`\n📝 Enrollment Details:`);
+    console.log(`\nEnrollment Details:`);
     console.log(`   Student: ${enrollment.student.firstName} ${enrollment.student.lastName}`);
     console.log(`   Class: ${enrollment.class.groupName}`);
     console.log(`   Level: ${enrollment.class.level.label}`);

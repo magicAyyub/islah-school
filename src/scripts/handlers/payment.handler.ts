@@ -11,10 +11,10 @@ export async function handlePaymentManagement() {
   const action = await select({
     message: "Payment Management:",
     options: [
-      { value: "list", label: "📋 List All Payments" },
-      { value: "bounced", label: "📋 List Bounced Payments" },
+      { value: "list", label: "List All Payments" },
+      { value: "bounced", label: "List Bounced Payments" },
       { value: "create", label: "Create Payment" },
-      { value: "bounce", label: "🚨 Test Bounced Check (Block Student)" },
+      { value: "bounce", label: "Test Bounced Check (Block Student)" },
       { value: "balance", label: "Check Enrollment Balance" },
     ],
   });
@@ -45,10 +45,10 @@ async function listAllPayments() {
   const payments = await getAllPayments();
   s.stop();
 
-  console.log("\n💰 All Payments:");
+  console.log("\nAll Payments:");
   console.log("─".repeat(100));
   payments.forEach((p) => {
-    const statusIcon = p.status === "COMPLETED" ? "✅" : p.status === "BOUNCED" ? "🚨" : "⏳";
+    const statusIcon = p.status === "COMPLETED" ? "[COMPLETED]" : p.status === "BOUNCED" ? "[BOUNCED]" : "[PENDING]";
     console.log(
       `${statusIcon} ${p.enrollment.student.firstName} ${p.enrollment.student.lastName} | ${p.amount} DH | ${p.method} | ${p.period} | ${p.status}`
     );
@@ -64,14 +64,14 @@ async function listBouncedPayments() {
   const bouncedPayments = await getPaymentsByStatus("BOUNCED");
   s.stop();
 
-  console.log("\n🚨 Bounced Payments:");
+  console.log("\nBounced Payments:");
   console.log("─".repeat(100));
   if (bouncedPayments.length === 0) {
     console.log("No bounced payments found.");
   } else {
     bouncedPayments.forEach((p) => {
       console.log(
-        `🚨 ${p.enrollment.student.firstName} ${p.enrollment.student.lastName} | ${p.amount} DH | ${p.method} | ${p.period}`
+        `[BOUNCED] ${p.enrollment.student.firstName} ${p.enrollment.student.lastName} | ${p.amount} DH | ${p.method} | ${p.period}`
       );
       console.log(`   Payment ID: ${p.id} | Date: ${p.paymentDate}`);
       console.log(`   Student Status: ${p.enrollment.student.folderStatus}`);
@@ -119,7 +119,7 @@ async function createNewPayment() {
     period: period as "REGISTRATION" | "Q1" | "Q2" | "Q3",
   });
 
-  s.stop(`✅ Payment created: ${payment.amount} (${payment.method})`);
+  s.stop(`Payment created: ${payment.amount} (${payment.method})`);
 }
 
 async function testBouncedCheck() {
@@ -128,7 +128,7 @@ async function testBouncedCheck() {
   });
 
   const confirm_ = await confirm({
-    message: "⚠️  This will BLOCK the student. Continue?",
+    message: "This will BLOCK the student. Continue?",
   });
 
   if (!confirm_) return;
@@ -139,7 +139,7 @@ async function testBouncedCheck() {
   const result = await markPaymentAsBounced(paymentId as string);
 
   if (result.success) {
-    s.stop(`🚨 ${result.message}`);
+    s.stop(`CRITICAL: ${result.message}`);
   }
 }
 
@@ -150,7 +150,7 @@ async function checkEnrollmentBalance() {
 
   const balance = await getEnrollmentBalance(enrollmentId as string, 2000);
 
-  console.log("\n💰 Payment Balance:");
+  console.log("\nPayment Balance:");
   console.log(`   Total Paid: ${balance.totalPaid} DH`);
   console.log(`   Expected: ${balance.expectedTotal} DH`);
   console.log(`   Balance: ${balance.balance} DH`);
