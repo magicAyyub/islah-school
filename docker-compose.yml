@@ -1,0 +1,16 @@
+services:
+  islah-db:
+    image: postgres:16-alpine
+    container_name: islah-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: islah_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - islah_data:/var/lib/postgresql/data
+
+volumes:
+  islah_data:
