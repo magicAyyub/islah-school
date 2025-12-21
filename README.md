@@ -1,6 +1,6 @@
 # Islah School Management System
 
-Backend for Islamic school management: enrollments, classes, payments, guardian relationships.
+Full stack application for Islamic school management: enrollments, classes, payments, guardian relationships.
 
 ER Diagram - [ER Diagram](./public/ERD.png)
 <br>
@@ -49,7 +49,6 @@ DATABASE_URL=postgresql://admin:admin@localhost:5432/islah_db
 | `npm run db:studio` | Open database GUI |
 | `npm run db:seed` | Seed levels and slots |
 | `npm test` | Run test suite |
-| `npm run test:ui` | Open test UI |
 
 ## Database
 
