@@ -83,6 +83,7 @@ DATABASE_URL=postgresql://admin:admin@localhost:5432/islah_db
 | Guardians | `guardian.service.ts` | Create guardian/student, link, check duplicates |
 | Enrollments | `enrollment.service.ts` | Create, validate, cancel, get details |
 | Payments | `payment.service.ts` | Create, mark bounced, calculate balance |
+| Receipts | `receipt.service.ts` | Generate PDF, re-print, list, get path |
 
 ## CLI Operations
 
@@ -114,6 +115,12 @@ npm run cli
 - Mark as bounced
 - View balance
 - List payments
+
+### Receipt (Phase 2)
+- Generate PDF receipt
+- Re-print receipt
+- List receipts by enrollment
+- Open PDF in viewer
 
 ## Business Rules
 
@@ -158,6 +165,7 @@ npm test
 | Enrollment Service | 10 | Validation, blocking, duplicates |
 | Payment Service | 11 | Balance, bounced checks, periods |
 | Guardian Service | 9 | Linking, duplicates, family tree |
+| Receipt Service | 9 | PDF generation, re-print, storage |
 
 ## Service Response Format
 
@@ -201,6 +209,15 @@ const result = await markPaymentAsBounced(paymentId);
 // Student automatically blocked
 ```
 
+### Generate Receipt (Phase 2)
+
+```typescript
+const result = await generateReceipt(paymentId);
+// Automatically generates professional PDF receipt
+// Stores in receipts/ directory
+console.log(`Receipt: ${result.filePath}`);
+```
+
 ## Schema Updates
 
 1. Edit `src/db/schema.ts`
@@ -234,8 +251,13 @@ Use Neon or Supabase for PostgreSQL. Update `DATABASE_URL` in `.env`.
 | Bounced Check Automation | Done | Automatic student blocking |
 | Balance Calculation | Done | Excludes PENDING/BOUNCED |
 | Unpaid Students Dashboard | Done | Comprehensive report with sorting |
-| PDF Receipt Generation | Missing | Backend-ready, not implemented |
-| Receipt Storage & Re-print | Missing | No implementation |
+| **Receipt System (Phase 2)** | | |
+| PDF Receipt Generation | Done | Auto-generates on payment creation |
+| Professional Receipt Template | Done | French template with school branding |
+| Receipt Storage | Done | File-based storage in receipts/ directory |
+| Re-print Functionality | Done | Generate new copy of existing receipt |
+| List Receipts by Enrollment | Done | View all receipts for a student |
+| Open PDF from CLI | Done | Opens in default PDF viewer |
 | **Notifications & Alerts** | | |
 | Admin Alerts (Capacity, Checks) | Missing | Entire module not implemented |
 | Email/SMS to Parents | Missing | No communication system |
@@ -244,13 +266,6 @@ Use Neon or Supabase for PostgreSQL. Update `DATABASE_URL` in `.env`.
 | Payment Reminders | Missing | No automated reminders |
 
 ## Next Steps (Roadmap)
-
-
-### Phase 2: Receipt System
-1. PDF generation library integration (pdfkit or puppeteer)
-2. Receipt template design
-3. Storage in database or file system
-4. Re-print functionality
 
 ### Phase 3: Notification System
 1. Email service integration (Resend, SendGrid, or Brevo)

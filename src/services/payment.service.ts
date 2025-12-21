@@ -2,6 +2,7 @@ import "dotenv/config";
 import { db } from "../db/index";
 import { payments, students, enrollments } from "../db/schema";
 import { eq, sql } from "drizzle-orm";
+import { generateReceipt } from "./receipt.service";
 
 interface CreatePaymentParams {
   enrollmentId: string;
@@ -28,6 +29,13 @@ export async function createPayment(params: CreatePaymentParams) {
       paymentDate: params.paymentDate || new Date().toISOString(),
     })
     .returning();
+
+  // Auto-generate receipt for completed payments
+  if (payment.status === "COMPLETED") {
+    await generateReceipt(payment.id).catch(err => {
+      console.error(`Failed to generate receipt for payment ${payment.id}:`, err);
+    });
+  }
 
   return payment;
 }

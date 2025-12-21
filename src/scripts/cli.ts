@@ -4,6 +4,7 @@ import { handleClassManagement } from "./handlers/class.handler";
 import { handleStudentManagement } from "./handlers/student.handler";
 import { handleEnrollmentManagement } from "./handlers/enrollment.handler";
 import { handlePaymentManagement } from "./handlers/payment.handler";
+import { handleReceiptManagement } from "./handlers/receipt.handler";
 import { handleLists } from "./handlers/list.handler";
 
 async function main() {
@@ -20,6 +21,7 @@ async function main() {
         { value: "student", label: "Student & Guardian Management (CRM)" },
         { value: "enrollment", label: "Enrollment Management (Validation Flow)" },
         { value: "payment", label: "Payment Management (Bounced Check Test)" },
+        { value: "receipt", label: "Receipt Management (PDF Generation)" },
         { value: "lists", label: "View Lists (Classes, Students, Enrollments)" },
         { value: "exit", label: "Exit" },
       ],
@@ -47,6 +49,9 @@ async function main() {
         break;
       case "payment":
         await handlePaymentManagement();
+        break;
+      case "receipt":
+        await handleReceiptManagement();
         break;
       case "lists":
         await handleLists();
