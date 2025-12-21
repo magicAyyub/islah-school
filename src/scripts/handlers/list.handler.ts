@@ -138,38 +138,3 @@ async function showLevelsAndSlots(s: Spinner) {
     console.log(`   - ${s.day} | ${s.period} | ${s.startTime} - ${s.endTime}`)
   );
 }
-
-  const listType = await select({
-    message: "What would you like to view?",
-    options: [
-      { value: "classes", label: "📚 All Classes" },
-      { value: "students", label: "👨‍🎓 All Students" },
-      { value: "guardians", label: "👨‍👩‍👧 All Guardians" },
-      { value: "enrollments", label: "📝 All Enrollments" },
-      { value: "payments", label: "💰 All Payments" },
-      { value: "levels", label: "📊 Levels & Slots" },
-    ],
-  });
-
-  const s = spinner();
-
-  switch (listType) {
-    case "classes":
-      await showAllClasses(s);
-      break;
-    case "students":
-      await showAllStudents(s);
-      break;
-    case "guardians":
-      await showAllGuardians(s);
-      break;
-    case "enrollments":
-      await showAllEnrollments(s);
-      break;
-    case "payments":
-      await showAllPayments(s);
-      break;
-    case "levels":
-      await showLevelsAndSlots(s);
-      break;
-  }
